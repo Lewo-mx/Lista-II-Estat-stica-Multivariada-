@@ -1,0 +1,195 @@
+# 1 - O teor de P (mg/dm3) no solo em funÃ§Ã£o de doses de hidrogel (g/dm3) foi avaliado em um experimento, cujos 
+# resultados sÃ£o:
+
+dados<-data.frame(
+  hidrogel = c(1L,1L,1L,1L,1L,1L,2L,
+               2L,2L,2L,2L,2L,3L,3L,3L,3L,3L,3L,4L,4L,4L,
+               4L,4L,4L,5L,5L,5L,5L,5L,5L),
+  bloco = c(1L,2L,3L,1L,2L,3L,1L,
+            2L,3L,1L,2L,3L,1L,2L,3L,1L,2L,3L,1L,2L,3L,
+            1L,2L,3L,1L,2L,3L,1L,2L,3L),
+  p = c(51.16,46.26,51.51,55.06,
+        58.11,58.44,43.02,45.76,43.55,49.97,50.32,56.77,
+        42.17,40.13,44.93,50.48,56.09,48.96,41.82,44.44,
+        43.88,53.18,52.69,53.55,48.44,52.69,51.53,61.02,
+        74.05,67.62)
+)
+
+
+# a ) Realize a ANOVA
+
+dados$hidrogelq<-dados$hidrogel
+
+dados$hidrogel<-as.factor(dados$hidrogel)
+
+modelo<-lm(p~bloco+hidrogel, data=dados)
+
+
+library(myfuns)
+
+
+anovaCV(modelo)
+
+anova(modelo)
+
+# b) Teste os efeitos polinomiais
+
+library(emmeans)
+mediasreg<-emmeans(modelo, ~hidrogel)
+
+mediasreg
+
+#Desdobrar em efeitos polinomiais
+contrast(mediasreg, method="poly")
+
+
+# c) Ajuste a equaÃ§Ã£o quadrÃ¡tica 
+
+library(tidyverse)
+
+medias<-dados %>% 
+  group_by(hidrogelq) %>% 
+  summarise_all(list(~mean(.)), na.rm=T)
+
+
+# y = a+bx+cx^2
+
+equacao<-lm(p~hidrogelq+I(hidrogelq^2), data=medias)
+
+equacao
+# Y = 65.040-13.645*x+2.468*x^2
+
+summary(equacao)
+#R2= 0.95 = 95%
+
+titulox=expression(Doses~de~hidrogel~(g~dm^-3))
+
+titulox
+# d) Calcule a mÃ¡xima (ou mÃ­nima_ eficiÃªncia fÃ­sica
+
+library(Deriv)
+
+fequacao <- function(x)  65.04-13.645*x+2.468*x^2
+derfun<-Deriv(fequacao)
+derfun
+
+Deriv(fequacao)
+
+x<-seq(0,5,1)
+taxa<-derfun(x)
+
+plot(x, taxa)
+
+uniroot(derfun, interval=c(0,5))
+#Máxima eficiência física = 2.764
+
+
+library(GA)
+f <- function(x)  65.04-13.645*x+2.468*x^2
+min <- 0; max <- 5
+curve(f, min, max, n = 1000)
+
+solucao<-ga(type = "real-valued", fitness = f, lower = min, upper =  max, 
+            monitor = T)
+
+
+summary(solucao)
+plot(solucao)
+
+curve(f, min, max, n = 1000)
+points(solucao@solution, solucao@fitnessValue, col = 2, pch = 19)
+
+# e) Grafique os resultados, incluÃ­ndo a equaÃ§Ã£o e a figura. 
+
+
+eql = function(df) {
+  #Mudar de acordo
+  m = lm(y ~ x, data=df)
+  
+  
+  if (length(coef(m)== 2))  {
+    if (coef(m)[2] > 0)  {
+      b = as.character(paste("+",round(coef(m)[2], 3), sep=""))
+    } else {
+      b = as.character(round(coef(m)[2], 3)) 
+    }
+    a= as.character(round(coef(m)[1], 2))
+    r2=paste(round(summary(m)$r.squared, 3)*100, "%", sep="")
+    eq<-bquote(hat(y)==~.(a)~.(b)^"**"*x~";"~R^2== .(r2))}
+  #eq<-paste("hat(y)==~",a,b,"~'x'~", "~';'", "~R^2==~", r2)}          
+  
+  else if (length(coef(m)== 3))  {
+    
+    if (coef(m)[2] > 0)  {
+      b = as.character(paste("+",round(coef(m)[2], 4), sep=""))
+    } else {
+      b = as.character(round(coef(m)[2], 4))} 
+    if (coef(m)[3] > 0)  {
+      c = as.character(paste("+",round(coef(m)[3], 4), sep=""))
+    } else {
+      c = as.character(round(coef(m)[3], 4)) }
+    a= as.character(round(coef(m)[1], 4))
+    r2=paste(round(summary(m)$r.squared, 3)*100, "%", sep="")
+    # eq<-paste("hat(y)==~",a,b,"~'x'~",c,"x^2", "';'", "~R^2==~", r2)}
+    eq<-bquote(hat(y)==~.(a)~.(b)*x~.(c)*x^2~";"~R^2== .(r2))}
+  as.character(as.expression(eq))               
+}
+
+
+
+
+eqq = function(df) {
+  
+  m = lm(y ~ x+I(x^2), data=df)
+  if (coef(m)[2] > 0)  {
+    b = as.character(paste("+",round(coef(m)[2], 3), sep=""))
+  } else {
+    b = as.character(round(coef(m)[2], 3))} 
+  if (coef(m)[3] > 0)  {
+    c = as.character(paste("+",round(coef(m)[3], 4), sep=""))
+  } else {
+    c = as.character(round(coef(m)[3], 4)) }
+  a= as.character(round(coef(m)[1], 2))
+  r2=paste(round(summary(m)$r.squared, 3)*100, "%", sep="")
+  # eq<-paste("hat(y)==~",a,b,"~'x'~",c,"x^2", "';'", "~R^2==~", r2)}
+  eq<-bquote(hat(y)==~.(a)~.(b)^"**"*x~.(c)^"**"*x^2~";"~R^2== .(r2))
+  as.character(as.expression(eq))               
+}
+
+eqm = function(df){
+  a= as.character(round(mean(df$y), 2))
+  eq<-bquote(hat(y)==~bar(y)==~.(a))
+  as.character(as.expression(eq))               
+}
+
+
+#[i,j]
+
+#Panilha Para as equacoes
+dataeq<-medias[,c(1,4)]
+#Nomes para x y
+
+colnames(dataeq)<-c("x", "y")
+
+eqq(dataeq)
+
+#Alterar a significancia de algum termo
+
+#SUPONDO LINEAR *
+labelequa<-eqq(dataeq)
+
+fix(labelequa)
+
+figura2<-ggplot(aes(x=hidrogelq, y=p), data=medias)+
+  geom_point(size=2.5,pch=21,col='blue4', fill='cornflowerblue')+
+  geom_smooth(method = "lm", formula=y~x+I(x^2), se=F, color="red")+
+  xlab(expression(hidrogel~(~g~dm^-3)))+
+  ylab(expression(p~(~mg~dm^-3)))+
+  scale_x_continuous(breaks=c(1,2,3,4,5,6))+
+  scale_y_continuous(breaks=c(40,45,50,55,60))+
+  theme_nogrid(base_size = 15, base_family = "Times New Roman")+
+  geom_text(aes(x = 3, y = 43, label=eqq(dataeq)),
+            parse = T,  size=4, alpha=0.6, color="blue")
+  
+
+figura2
