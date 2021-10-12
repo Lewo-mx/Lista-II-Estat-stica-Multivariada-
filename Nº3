@@ -1,0 +1,51 @@
+# 3 - Turnbull et al. (2008) grew nine species of sandâdune annuals from seed under five dilutions of fertilizer.
+#All seeds were grown outdoors initially, with half transferred to a cool glasshouse after 5âweeks. 
+# Three individuals per treatment combination were sacrificed and individual biomass measured at each of seven census intervals over the course of 198âdays. 
+# In this dataset, are presented the results of the growth (g/plant)  of Cerastium diffusum L. (Caryophyllaceae) in unfertilized greenhouse conditions.
+
+dad<-
+  structure(list(X = c(14L, 14L, 14L, 35L, 35L, 35L, 70L, 133L, 
+                       70L, 161L, 98L, 161L, 133L, 98L, 189L, 189L, 189L, 98L, 133L, 
+                       161L), Y = c(0.031, 0.087, 0.09, 0.261, 0.291, 0.437, 2.104, 
+                                    2.736, 2.814, 5.832, 2.979, 9, 6.309, 3.483, 6.103, 5.655, 5.889, 
+                                    4.462, 8.392, 7.043)), .Names = c("X", "Y"), class = "data.frame", row.names = c(NA, 
+                                                                                                                     -20L))
+
+
+#a)	Ajuste cinco equaÃ§Ãµes nÃ£o lineares 
+#b) Escolha o melhor modelo
+#c) Calcule as taxas absoluta e relativa de crescimento, considerando o melhor modelo
+#c) Interprete os resultados obtidos, incluindo o significado biolÃ³gico dos parÃ¢metros estimados. Para o efeito, grafique a equaÃ§Ã£o e as taxas. 
+
+plot(dad$X, dad$Y)
+
+View(dad)
+
+summary(dad)
+
+library(nlstools)
+library(nlme)
+library(qpcR)
+library(nlme)
+library(nls2)
+library(nls.multstart)
+library(nlshelper)
+library(dplyr)
+
+#Gompertz#(A) * exp(-exp(-k*(t-tm)))
+
+
+equacao<- function(t, A, k, tm) {
+  (A) * exp(-exp(-k*(t-tm)))
+}
+
+inicio=list(A=9, k=0.5, tm=60)
+
+
+modelo1<-nls(Y~equacao(t, A, k, tm), data=dad, start=inicio)
+
+modelo2= nls(Y~(Y.asim)*exp(-exp(-k*(t-t.m))),data=dad, start=list(Y.asim=9 ,k=0.05, t.m=100))
+
+
+modelo4= nls(Y~(A)/(1+exp(-k*(t-t.m))),data=dad, start=list(A=18,k=0.43,t.m=3))
+
